@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Наше CRUD API
+  api:
+    build: .
+    container_name: crud-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - test-net
+    restart: unless-stopped
+
+  # InfluxDB для хранения метрик k6
+  influxdb:
+    image: influxdb:1.8
+    container_name: crud-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=k6
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb
+    networks:
+      - test-net
+    restart: unless-stopped
+
+  # Grafana для визуализации
+  grafana:
+    image: grafana/grafana:latest
+    container_name: crud-grafana
+    ports:
+      - "3001:3000"  # Пробрасываем на 3001, чтобы не конфликтовать с API
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    networks:
+      - test-net
+    restart: unless-stopped
+
+networks:
+  test-net:
+    driver: bridge

@@ -1,0 +1,21 @@
+# Не копируем зависимости (установим внутри контейнера)
+node_modules
+npm-debug.log
+
+# Не копируем Git
+.git
+.gitignore
+
+# Не копируем локальные файлы разработки
+.vscode
+.idea
+*.swp
+*.swo
+
+# Не копируем Docker файлы (чтобы не было конфликтов)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Не копируем логи
+*.log
