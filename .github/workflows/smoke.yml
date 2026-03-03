@@ -10,38 +10,41 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     
-    services:
-      # Запускаем наше API для тестов
-      api:
-        image: node:18-alpine
-        ports:
-          - 3000:3000
-        options: >-
-          --name test-api
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:3000/api/items || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        # Копируем код в контейнер через volumes
-        volumes:
-          - ${{ github.workspace }}:/app
-
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Start API server in background
+        run: |
+          node server.js &
+          echo "API_PID=$!" >> $GITHUB_ENV
+      
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/api/items > /dev/null; then
+              echo "✅ API is ready!"
+              exit 0
+            fi
+            echo "⏳ Waiting for API... ($i/30)"
+            sleep 2
+          done
+          echo "❌ API failed to start"
+          exit 1
       
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
       
-      - name: Install dependencies
-        run: |
-          docker exec test-api sh -c "cd /app && npm install"
-      
-      - name: Start API server
-        run: |
-          docker exec -d test-api sh -c "cd /app && node server.js"
-      
-      - name: Wait for API to be ready
-        run: sleep 10
-      
       - name: Run smoke test
         run: k6 run k6-tests/scripts/smoke-test.js
+      
+      - name: Stop API server
+        if: always()
+        run: kill ${{ env.API_PID }} || true
