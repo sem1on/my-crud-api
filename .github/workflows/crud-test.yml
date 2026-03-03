@@ -1,0 +1,58 @@
+name: CRUD Performance Test
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:  # возможность ручного запуска
+  schedule:
+    - cron: '0 2 * * *'  # запуск каждый день в 2 часа ночи
+
+jobs:
+  crud-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      api:
+        image: node:18-alpine
+        ports:
+          - 3000:3000
+        options: >-
+          --name test-api
+          --health-cmd "curl -f http://localhost:3000/api/items || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        volumes:
+          - ${{ github.workspace }}:/app
+        working_dir: /app
+        command: sh -c "npm install && node server.js"
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+      
+      - name: Wait for API to be ready
+        run: sleep 10
+      
+      - name: Run CRUD test
+        run: |
+          k6 run \
+            --summary-export=results.json \
+            k6-tests/scripts/crud-test.js
+      
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: results.json
+      
+      - name: Check thresholds
+        run: |
+          if grep -q '"thresholds":.*"failed":' results.json; then
+            echo "❌ Thresholds failed!"
+            exit 1
+          else
+            echo "✅ All thresholds passed!"
+          fi
