@@ -18,20 +18,27 @@ jobs:
           - 3000:3000
         options: >-
           --name test-api
-          --health-cmd "curl -f http://localhost:3000/api/items || exit 1"
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:3000/api/items || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        # Копируем код в контейнер через volumes
         volumes:
           - ${{ github.workspace }}:/app
-        working_dir: /app
-        command: sh -c "npm install && node server.js"
 
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
+      
+      - name: Install dependencies
+        run: |
+          docker exec test-api sh -c "cd /app && npm install"
+      
+      - name: Start API server
+        run: |
+          docker exec -d test-api sh -c "cd /app && node server.js"
       
       - name: Wait for API to be ready
         run: sleep 10
