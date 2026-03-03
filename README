@@ -1,0 +1,11 @@
+# My CRUD API Performance Testing Project
+
+![Smoke Test](https://github.com/sem1on/my-crud-api/actions/workflows/smoke.yml/badge.svg)
+![CRUD Test](https://github.com/sem1on/my-crud-api/actions/workflows/crud-test.yml/badge.svg)
+
+## 📊 Статус тестов
+- **Smoke Test**: Проверка базовой доступности API
+- **CRUD Test**: Полное нагрузочное тестирование всех операций
+
+## 🚀 Быстрый старт
+...

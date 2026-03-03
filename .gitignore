@@ -43,3 +43,6 @@ grafana/data/*
 # InfluxDB data
 influxdb/data/
 influxdb/data/*
+
+# GitHub Actions не нужно игнорировать, но проверим что у нас есть
+# .github/workflows/ - это нужно коммитить!
