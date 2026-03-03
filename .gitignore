@@ -35,3 +35,11 @@ docker-compose.override.yml
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Grafana data (НЕ КОММИТИТЬ!)
+grafana/data/
+grafana/data/*
+
+# InfluxDB data
+influxdb/data/
+influxdb/data/*
