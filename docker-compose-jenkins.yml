@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-local
+    ports:
+      - "8080:8080"      # Веб-интерфейс Jenkins
+      - "50000:50000"    # Для агентов
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock  # Доступ к Docker
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false  # Пропускаем мастер установки
+
+volumes:
+  jenkins_home:
