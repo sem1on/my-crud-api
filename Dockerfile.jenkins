@@ -1,0 +1,47 @@
+FROM node:18-slim AS node-base
+FROM jenkins/jenkins:lts
+
+# Копируем Node.js из официального образа
+COPY --from=node-base /usr/local/bin/node /usr/local/bin/
+COPY --from=node-base /usr/local/bin/npm /usr/local/bin/
+COPY --from=node-base /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node-base /opt /opt
+
+USER root
+
+# ПРОВЕРКА: посмотрим, что скопировалось
+RUN ls -la /usr/local/bin/ | grep -E "node|npm" || echo "Node/NPM not found in /usr/local/bin/"
+RUN which node || echo "node not in PATH"
+RUN which npm || echo "npm not in PATH"
+
+# Создаём директорию /opt/bin если её нет
+RUN mkdir -p /opt/bin
+
+# Копируем файлы напрямую, без симлинков
+RUN if [ -f /usr/local/bin/node ]; then \
+      cp /usr/local/bin/node /opt/bin/; \
+    else \
+      echo "ERROR: node binary not found"; \
+      exit 1; \
+    fi && \
+    if [ -f /usr/local/bin/npm ]; then \
+      cp /usr/local/bin/npm /opt/bin/; \
+    else \
+      echo "ERROR: npm binary not found"; \
+      exit 1; \
+    fi && \
+    chmod +x /opt/bin/node /opt/bin/npm
+
+ENV PATH="/opt/bin:${PATH}"
+
+# Устанавливаем k6
+RUN curl -L -o /tmp/k6.tar.gz https://github.com/grafana/k6/releases/download/v0.49.0/k6-v0.49.0-linux-amd64.tar.gz \
+    && tar -xzf /tmp/k6.tar.gz -C /tmp \
+    && mv /tmp/k6-v0.49.0-linux-amd64/k6 /opt/bin/ \
+    && rm -rf /tmp/k6* \
+    && chmod +x /opt/bin/k6
+
+# Финальная проверка
+RUN node --version && npm --version && k6 version
+
+USER jenkins
