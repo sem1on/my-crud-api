@@ -2,8 +2,9 @@ pipeline {
     agent any
     
     environment {
-        // Переменные окружения
         BASE_URL = 'http://localhost:3000'
+        // Каталог внутри контейнера Jenkins
+        WORKSPACE = "${env.WORKSPACE}"
     }
     
     stages {
@@ -16,10 +17,11 @@ pipeline {
         stage('Setup Node.js') {
             steps {
                 sh '''
-                    # Проверяем наличие node, устанавливаем если нет
+                    # Проверяем наличие node
                     if ! command -v node &> /dev/null; then
-                        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-                        sudo apt-get install -y nodejs
+                        # Для Debian/Ubuntu (в контейнере Jenkins)
+                        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+                        apt-get update && apt-get install -y nodejs
                     fi
                 '''
             }
@@ -46,13 +48,13 @@ pipeline {
         stage('Install k6') {
             steps {
                 sh '''
-                    # Установка k6
-                    sudo apt-get update
-                    sudo apt-get install -y dirmngr
-                    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-                    echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-                    sudo apt-get update
-                    sudo apt-get install -y k6
+                    # Установка k6 без sudo
+                    apt-get update
+                    apt-get install -y dirmngr
+                    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+                    echo "deb https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
+                    apt-get update
+                    apt-get install -y k6
                 '''
             }
         }
@@ -75,7 +77,6 @@ pipeline {
         
         stage('Archive Results') {
             steps {
-                // Сохраняем результаты как артефакты
                 archiveArtifacts artifacts: 'results.json', allowEmptyArchive: true
             }
         }
@@ -93,7 +94,6 @@ pipeline {
         }
         failure {
             echo '❌ Performance thresholds failed!'
-            // Здесь можно добавить уведомления
         }
         success {
             echo '✅ All tests passed!'
